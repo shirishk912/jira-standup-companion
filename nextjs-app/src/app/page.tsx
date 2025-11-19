@@ -7,6 +7,7 @@ import TicketModal from '@/components/TicketModal';
 import MeetingEnded from '@/components/MeetingEnded';
 import confetti from 'canvas-confetti';
 import { playTimerSound } from '@/utils/sound';
+import { useRouter } from 'next/navigation';
 
 interface User {
   accountId: string;
@@ -41,6 +42,13 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const totalTime = 60;
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -210,6 +218,11 @@ export default function Home() {
     <div className="app-container">
       <header className="header">
         <h1>MMH Standup Companion</h1>
+        <button className="logout-btn" onClick={handleLogout} title="Logout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
       </header>
 
       {isMeetingEnded ? (

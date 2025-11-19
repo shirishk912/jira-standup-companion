@@ -11,6 +11,7 @@ A modern, interactive Next.js application for streamlining daily standup meeting
 
 ## ✨ Features
 
+- 🔐 **Team Authentication** - Secure passphrase-based access control
 - 🎨 **Modern Glassmorphism UI** - Sleek gradient borders and backdrop blur effects
 - ⏱️ **Integrated Timer** - Circular progress ring around user avatar with 60-second countdown
 - 📊 **Progress Bar** - Modern progress tracker showing current user position (e.g., 1/8)
@@ -46,11 +47,15 @@ A modern, interactive Next.js application for streamlining daily standup meeting
    
    Create a `.env.local` file in the `nextjs-app` directory:
    ```env
+   # Jira Configuration
    JIRA_URL=https://your-domain.atlassian.net
    JIRA_EMAIL=your-email@example.com
    JIRA_API_TOKEN=your-api-token
    JIRA_PROJECT_KEY=YOUR-PROJECT-KEY
    JIRA_BOARD_ID=your-board-id
+   
+   # Authentication (set a secure passphrase for your team)
+   AUTH_PASSPHRASE=your-secure-team-passphrase
    ```
 
    **Get your Jira API token:**
@@ -100,6 +105,7 @@ A modern, interactive Next.js application for streamlining daily standup meeting
      - `JIRA_API_TOKEN`
      - `JIRA_PROJECT_KEY`
      - `JIRA_BOARD_ID`
+     - `AUTH_PASSPHRASE` (your team's access passphrase)
    - Select "Production" environment
    - Redeploy after adding variables
 
