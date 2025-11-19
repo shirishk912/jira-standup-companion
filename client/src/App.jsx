@@ -8,7 +8,7 @@ import MeetingEnded from './components/MeetingEnded';
 import confetti from 'canvas-confetti';
 import { playTimerSound } from './utils/sound';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 function App() {
   const [users, setUsers] = useState([]);
