@@ -1,12 +1,33 @@
+'use client';
+
 import React from 'react';
 
-const UserCarousel = ({ users, activeIndex, onNext, onPrev, onShuffle }) => {
+interface User {
+    accountId: string;
+    displayName: string;
+    emailAddress: string;
+}
+
+interface UserCarouselProps {
+    users: User[];
+    activeIndex: number;
+    onNext: () => void;
+    onPrev: () => void;
+    onShuffle: () => void;
+}
+
+const UserCarousel: React.FC<UserCarouselProps> = ({
+    users,
+    activeIndex,
+    onNext,
+    onPrev,
+    onShuffle
+}) => {
     const activeUser = users[activeIndex];
 
     if (!activeUser) return null;
 
-    // Extract initials from display name (e.g., "Piotr Cygan" -> "PC")
-    const getInitials = (name) => {
+    const getInitials = (name: string): string => {
         const parts = name.split(' ');
         if (parts.length >= 2) {
             return (parts[0][0] + parts[1][0]).toUpperCase();

@@ -1,23 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import Timer from './components/Timer';
-import TicketList from './components/TicketList';
-import UserCarousel from './components/UserCarousel';
-import TicketModal from './components/TicketModal';
-import ProgressBar from './components/ProgressBar';
-import MeetingEnded from './components/MeetingEnded';
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import Timer from '@/components/Timer';
+import TicketList from '@/components/TicketList';
+import UserCarousel from '@/components/UserCarousel';
+import TicketModal from '@/components/TicketModal';
+import ProgressBar from '@/components/ProgressBar';
+import MeetingEnded from '@/components/MeetingEnded';
 import confetti from 'canvas-confetti';
-import { playTimerSound } from './utils/sound';
+import { playTimerSound } from '@/utils/sound';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+interface User {
+  accountId: string;
+  displayName: string;
+  emailAddress: string;
+}
 
-function App() {
-  const [users, setUsers] = useState([]);
-  const [issues, setIssues] = useState([]);
+interface Ticket {
+  key: string;
+  fields: {
+    summary: string;
+    status: { name: string };
+    priority?: { name: string };
+    assignee: {
+      accountId: string;
+      displayName: string;
+      emailAddress: string;
+    } | null;
+    updated: string;
+  };
+  browseUrl?: string;
+}
+
+export default function Home() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [issues, setIssues] = useState<Ticket[]>([]);
   const [activeUserIndex, setActiveUserIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [timerKey, setTimerKey] = useState(0); // To force reset timer
-  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [timerKey, setTimerKey] = useState(0);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isMeetingEnded, setIsMeetingEnded] = useState(false);
 
   useEffect(() => {
@@ -25,32 +47,30 @@ function App() {
       try {
         setLoading(true);
         const [usersRes, issuesRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/users`),
-          fetch(`${API_BASE_URL}/issues`)
+          fetch('/api/users'),
+          fetch('/api/issues')
         ]);
 
         if (!usersRes.ok || !issuesRes.ok) {
           throw new Error('Failed to fetch data from server');
         }
 
-        const usersData = await usersRes.json();
-        const issuesData = await issuesRes.json();
+        const usersData: User[] = await usersRes.json();
+        const issuesData: Ticket[] = await issuesRes.json();
 
-        // Filter users: only keep those who have at least one issue assigned
         const usersWithIssues = usersData.filter(user =>
           issuesData.some(issue =>
             issue.fields.assignee && issue.fields.assignee.accountId === user.accountId
           )
         );
 
-        // Shuffle users for random order
         const shuffledUsers = shuffleArray(usersWithIssues);
 
         setUsers(shuffledUsers);
         setIssues(issuesData);
       } catch (err) {
         console.error(err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
@@ -59,8 +79,7 @@ function App() {
     fetchData();
   }, []);
 
-  // Fisher-Yates shuffle algorithm
-  const shuffleArray = (array) => {
+  const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -81,10 +100,9 @@ function App() {
       setIsMeetingEnded(true);
     } else {
       setActiveUserIndex((prev) => prev + 1);
-      setTimerKey((prev) => prev + 1); // Reset timer on user switch
+      setTimerKey((prev) => prev + 1);
     }
 
-    // Play sound and confetti
     playTimerSound();
     confetti({
       particleCount: 100,
@@ -94,30 +112,27 @@ function App() {
     });
   };
 
+  const handlePrevUser = () => {
+    setActiveUserIndex((prev) => (prev - 1 + users.length) % users.length);
+    setTimerKey((prev) => prev + 1);
+  };
+
+  const handleTimerReset = useCallback(() => {
+    setTimerKey((prev) => prev + 1);
+  }, []);
+
+  const handleTimerComplete = () => {
+    handleNextUser();
+  };
+
   const handleRestart = () => {
     setIsMeetingEnded(false);
     setActiveUserIndex(0);
     setTimerKey(prev => prev + 1);
   };
 
-  const handlePrevUser = () => {
-    setActiveUserIndex((prev) => (prev - 1 + users.length) % users.length);
-    setTimerKey((prev) => prev + 1); // Reset timer on user switch
-  };
-
-  const handleTimerReset = React.useCallback(() => {
-    setTimerKey((prev) => prev + 1);
-  }, []);
-
-  const handleTimerComplete = () => {
-    // Auto-advance to next user
-    handleNextUser();
-  };
-
   const activeUser = users[activeUserIndex];
 
-  // Filter issues for active user
-  // Jira user object usually has 'accountId' or 'name'
   const userIssues = activeUser ? issues.filter(issue =>
     issue.fields.assignee && issue.fields.assignee.accountId === activeUser.accountId
   ) : [];
@@ -133,18 +148,37 @@ function App() {
   if (error) {
     return (
       <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <h1 style={{ color: 'var(--error-color)' }}>Error</h1>
+        <h1 style={{ color: 'var(--danger)' }}>Error</h1>
         <p>{error}</p>
-        <p>Make sure the backend server is running and Jira credentials are set.</p>
+        <p>Make sure Jira credentials are set in .env.local</p>
       </div>
     );
   }
 
-
-
-  // ... existing useEffect ...
-
-  // ... existing handlers ...
+  if (users.length === 0) {
+    return (
+      <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '2rem' }}>
+        <h1>No Team Members Found</h1>
+        <p style={{ maxWidth: '600px', margin: '1rem auto' }}>
+          No users with assigned tickets were found in the current active sprint.
+        </p>
+        <div style={{ marginTop: '2rem', textAlign: 'left', maxWidth: '600px', margin: '2rem auto' }}>
+          <h3>Possible reasons:</h3>
+          <ul style={{ lineHeight: '1.8' }}>
+            <li>No active sprint in your Jira project</li>
+            <li>No tickets assigned to users in the active sprint</li>
+            <li>Jira credentials not configured (check .env.local)</li>
+          </ul>
+          <h3 style={{ marginTop: '2rem' }}>To fix:</h3>
+          <ol style={{ lineHeight: '1.8' }}>
+            <li>Ensure you have an active sprint in Jira</li>
+            <li>Assign tickets to team members in that sprint</li>
+            <li>Refresh this page</li>
+          </ol>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -199,5 +233,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
