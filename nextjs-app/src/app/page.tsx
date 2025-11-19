@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Timer from '@/components/Timer';
 import TicketList from '@/components/TicketList';
 import UserCarousel from '@/components/UserCarousel';
 import TicketModal from '@/components/TicketModal';
-import ProgressBar from '@/components/ProgressBar';
 import MeetingEnded from '@/components/MeetingEnded';
 import confetti from 'canvas-confetti';
 import { playTimerSound } from '@/utils/sound';
@@ -38,9 +36,11 @@ export default function Home() {
   const [activeUserIndex, setActiveUserIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timerKey, setTimerKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isMeetingEnded, setIsMeetingEnded] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const totalTime = 60;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,6 +79,23 @@ export default function Home() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (!isTimerRunning || timeLeft <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsTimerRunning(false);
+          handleTimerComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timeLeft]);
+
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -92,7 +109,8 @@ export default function Home() {
     const shuffled = shuffleArray(users);
     setUsers(shuffled);
     setActiveUserIndex(0);
-    setTimerKey(prev => prev + 1);
+    setTimeLeft(totalTime);
+    setIsTimerRunning(false);
   };
 
   const handleNextUser = () => {
@@ -100,7 +118,8 @@ export default function Home() {
       setIsMeetingEnded(true);
     } else {
       setActiveUserIndex((prev) => prev + 1);
-      setTimerKey((prev) => prev + 1);
+      setTimeLeft(totalTime);
+      setIsTimerRunning(false);
     }
 
     playTimerSound();
@@ -114,11 +133,17 @@ export default function Home() {
 
   const handlePrevUser = () => {
     setActiveUserIndex((prev) => (prev - 1 + users.length) % users.length);
-    setTimerKey((prev) => prev + 1);
+    setTimeLeft(totalTime);
+    setIsTimerRunning(false);
+  };
+
+  const handleTimerToggle = () => {
+    setIsTimerRunning(!isTimerRunning);
   };
 
   const handleTimerReset = useCallback(() => {
-    setTimerKey((prev) => prev + 1);
+    setTimeLeft(totalTime);
+    setIsTimerRunning(false);
   }, []);
 
   const handleTimerComplete = () => {
@@ -128,7 +153,8 @@ export default function Home() {
   const handleRestart = () => {
     setIsMeetingEnded(false);
     setActiveUserIndex(0);
-    setTimerKey(prev => prev + 1);
+    setTimeLeft(totalTime);
+    setIsTimerRunning(false);
   };
 
   const activeUser = users[activeUserIndex];
@@ -201,17 +227,11 @@ export default function Home() {
               onNext={handleNextUser}
               onPrev={handlePrevUser}
               onShuffle={handleShuffle}
-            />
-            <Timer
-              key={timerKey}
-              duration={60}
-              onComplete={handleTimerComplete}
-              onReset={handleTimerReset}
-            />
-            <ProgressBar
-              current={activeUserIndex + 1}
-              total={users.length}
-              vertical={false}
+              timeLeft={timeLeft}
+              totalTime={totalTime}
+              isRunning={isTimerRunning}
+              onTimerToggle={handleTimerToggle}
+              onTimerReset={handleTimerReset}
             />
           </div>
 

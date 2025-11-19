@@ -137,3 +137,15 @@ export async function getProjectUsers(): Promise<JiraUser[]> {
 
     return Array.from(usersMap.values());
 }
+
+export function getSprintBoardUrl(): string | null {
+    if (!JIRA_URL || !JIRA_PROJECT_KEY) {
+        return null;
+    }
+    // For Jira Cloud, boards have specific IDs. Try to get from env, otherwise fallback to generic URL
+    const boardId = process.env.JIRA_BOARD_ID;
+    if (boardId) {
+        return `${JIRA_URL}/jira/software/c/projects/${JIRA_PROJECT_KEY}/boards/${boardId}`;
+    }
+    return `${JIRA_URL}/jira/software/projects/${JIRA_PROJECT_KEY}/boards`;
+}
